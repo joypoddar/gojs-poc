@@ -1,3 +1,9 @@
+import DiagramComponent from './NarrativeGraph';
+
 export default function Home() {
-  return <div>Hello JS</div>;
+  return (
+    <div>
+      <DiagramComponent />
+    </div>
+  );
 }
