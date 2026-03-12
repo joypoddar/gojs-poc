@@ -1,8 +1,9 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GoJs Narrative Graph POC
 
-## Getting Started
+## How to run the project
 
-First, run the development server:
+1. Clone the repository
+2. Install dependencies
 
 ```bash
 npm run dev
@@ -14,23 +15,20 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+This is what we require
+![Figma Design](public/Canvas.png)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+With reference to the above design, we have been able to achieve a major part of the requirements. **We are facing difficulty is implementing the multiple links between two nodes**. The example of what we want to achieve in given in the above image between `agent-login` and `book-hotel`
 
-## Learn More
+This is the current state of the project
+![Current State](public/poc-image.png)
 
-To learn more about Next.js, take a look at the following resources:
+If you take a look at this image, you will find the problem area in the nodes between `general_analysis_agent` and `get_app_error_groups`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+NOTE: Other features that you see in the Figma but not in the poc rendering are not implemented yet. We are currently focusing on the multiple links between two nodes. Once we have that working, we will move on to implementing the other features. We are also confident on being able to achieve those.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Requirement from GoJs Team
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+We would need your help if being able to render multiple parallel links between two nodes.
