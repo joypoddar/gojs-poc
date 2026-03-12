@@ -32,3 +32,11 @@ NOTE: Other features that you see in the Figma but not in the poc rendering are 
 ## Requirement from GoJs Team
 
 We would need your help if being able to render multiple parallel links between two nodes.
+
+## Notes
+
+`/app/data.ts` contains the data. We are using different data set for the vertical and the horizontal graph.
+
+`/app/Graph.tsx` contains the main graph component where we are using GoJs to render the graph. You can find the logic for rendering the nodes and links here.
+
+`/app/transformData.ts` contains the logic for transforming the data into the format that GoJs can understand.
