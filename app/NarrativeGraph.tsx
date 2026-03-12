@@ -2,6 +2,15 @@
 
 import React, { useEffect, useRef } from 'react';
 import * as go from 'gojs';
+import { turnData, turnChildrenData } from './data';
+import { transformToGoJS } from './transformData';
+
+// Color map per node type
+const NODE_COLORS: Record<string, string> = {
+  turn: '#3b82f6', // blue
+  agent: '#10b981', // green
+  tool: '#f59e0b' // amber
+};
 
 export default function DiagramComponent() {
   const diagramRef = useRef<HTMLDivElement | null>(null);
@@ -17,16 +26,17 @@ export default function DiagramComponent() {
     // ---------------- GROUP TEMPLATE ----------------
     diagram.groupTemplate = new go.Group('Auto', {
       layout: new go.LayeredDigraphLayout({
-        direction: 0, // 0 = right, 90 = down
+        direction: 0, // 0 = left-to-right
         columnSpacing: 50,
         layerSpacing: 80,
-        alignOption: go.LayeredDigraphAlign.All // Add this
+        alignOption: go.LayeredDigraphAlign.All
       })
     }).add(
       new go.Shape('Rectangle', {
-        fill: 'transparent',
-        stroke: 'transparent',
-        strokeWidth: 0
+        fill: 'rgba(200, 200, 200, 0.1)',
+        stroke: '#d1d5db',
+        strokeWidth: 1,
+        strokeDashArray: [4, 4]
       }),
       new go.Placeholder({ padding: 20 })
     );
@@ -34,7 +44,7 @@ export default function DiagramComponent() {
     // ---------------- NODE TEMPLATES ----------------
     const nodeTemplateMap = new go.Map<string, go.Node>();
 
-    // Vertical node template (top and bottom ports only)
+    // Vertical node template (turn + agent nodes: top, bottom, right ports)
     nodeTemplateMap.add(
       'vertical',
       new go.Node('Spot', {
@@ -42,18 +52,21 @@ export default function DiagramComponent() {
       })
         .bind('location', 'location', go.Point.parse, go.Point.stringify)
         .add(
-          new go.Shape('Ellipse', {
-            width: 30,
-            height: 30,
-            fill: 'green'
-          }),
+          new go.Shape('RoundedRectangle', {
+            width: 140,
+            height: 40,
+            strokeWidth: 0
+          }).bind('fill', 'type', (t: string) => NODE_COLORS[t] || '#6b7280'),
 
           new go.TextBlock({
-            font: 'bold 10px sans-serif',
-            stroke: 'white'
+            font: 'bold 11px sans-serif',
+            stroke: 'white',
+            margin: 6,
+            overflow: go.TextOverflow.Ellipsis,
+            maxSize: new go.Size(130, NaN)
           }).bind('text'),
 
-          // Top port (transparent)
+          // Top port
           new go.Shape('Circle', {
             width: 2,
             height: 2,
@@ -67,7 +80,7 @@ export default function DiagramComponent() {
             toLinkable: true
           }),
 
-          // Bottom port (transparent)
+          // Bottom port
           new go.Shape('Circle', {
             width: 2,
             height: 2,
@@ -81,7 +94,7 @@ export default function DiagramComponent() {
             toLinkable: true
           }),
 
-          // Right port (transparent) - for Turn A to Gamma connection
+          // Right port (connects to tool groups)
           new go.Shape('Circle', {
             width: 2,
             height: 2,
@@ -97,7 +110,7 @@ export default function DiagramComponent() {
         )
     );
 
-    // Horizontal node template (left and right ports only) - DEFAULT
+    // Horizontal node template (tool nodes: left + right ports) - DEFAULT
     nodeTemplateMap.add(
       '',
       new go.Node('Spot', {
@@ -105,32 +118,21 @@ export default function DiagramComponent() {
       })
         .bind('location', 'location', go.Point.parse, go.Point.stringify)
         .add(
-          new go.Shape('Ellipse', {
-            width: 30,
-            height: 30,
-            fill: 'green'
-          }),
+          new go.Shape('RoundedRectangle', {
+            width: 140,
+            height: 40,
+            strokeWidth: 0
+          }).bind('fill', 'type', (t: string) => NODE_COLORS[t] || '#6b7280'),
 
           new go.TextBlock({
-            font: 'bold 10px sans-serif',
-            stroke: 'white'
+            font: 'bold 11px sans-serif',
+            stroke: 'white',
+            margin: 6,
+            overflow: go.TextOverflow.Ellipsis,
+            maxSize: new go.Size(130, NaN)
           }).bind('text'),
 
-          // Right port (transparent)
-          new go.Shape('Circle', {
-            width: 2,
-            height: 2,
-            fill: 'transparent',
-            stroke: 'transparent',
-            portId: 'right',
-            alignment: go.Spot.Right,
-            fromSpot: go.Spot.Right,
-            toSpot: go.Spot.Right,
-            fromLinkable: true,
-            toLinkable: true
-          }),
-
-          // Left port (transparent)
+          // Left port
           new go.Shape('Circle', {
             width: 2,
             height: 2,
@@ -142,6 +144,20 @@ export default function DiagramComponent() {
             toSpot: go.Spot.Left,
             fromLinkable: true,
             toLinkable: true
+          }),
+
+          // Right port
+          new go.Shape('Circle', {
+            width: 2,
+            height: 2,
+            fill: 'transparent',
+            stroke: 'transparent',
+            portId: 'right',
+            alignment: go.Spot.Right,
+            fromSpot: go.Spot.Right,
+            toSpot: go.Spot.Right,
+            fromLinkable: true,
+            toLinkable: true
           })
         )
     );
@@ -151,72 +167,44 @@ export default function DiagramComponent() {
     // ---------------- LINK TEMPLATE ----------------
     diagram.linkTemplate = new go.Link({
       routing: go.Routing.Normal,
-      curve: go.Curve.None,
-      corner: 0
-    }).add(
-      new go.Shape({ strokeWidth: 2 }),
-      new go.Shape({ toArrow: 'Standard' })
+      curve: go.Curve.Bezier,
+      corner: 5
+    })
+      .bind('curviness')
+      .add(
+        new go.Shape({ strokeWidth: 1.5, stroke: '#6b7280' }),
+        new go.Shape({
+          toArrow: 'Standard',
+          fill: '#6b7280',
+          stroke: null,
+          scale: 1.2
+        }),
+        new go.TextBlock({
+          font: '9px sans-serif',
+          stroke: '#374151',
+          segmentOffset: new go.Point(0, -10),
+          segmentFraction: 0.5
+        }).bind('text')
+      );
+
+    // ---------------- TRANSFORM & SET MODEL ----------------
+    // Build turn_id → turnChildrenData map
+    const turnChildrenMap = new Map<string, typeof turnChildrenData>();
+    for (const turnObj of turnData.turn_ids) {
+      for (const turnId of Object.keys(turnObj)) {
+        turnChildrenMap.set(turnId, turnChildrenData);
+      }
+    }
+    const { nodeDataArray, linkDataArray } = transformToGoJS(
+      turnData,
+      turnChildrenMap
     );
 
-    // ---------------- MODEL ----------------
     diagram.model = new go.GraphLinksModel({
       linkFromPortIdProperty: 'fromPort',
       linkToPortIdProperty: 'toPort',
-
-      nodeDataArray: [
-        { key: 1, text: 'Turn A', location: '-100 160', category: 'vertical' },
-        { key: 2, text: 'Turn B', location: '-100 250', category: 'vertical' },
-
-        // Vertical chain
-        { key: 4, text: 'Turn 1', location: '-100 340', category: 'vertical' },
-        { key: 5, text: 'Turn 2', location: '-100 430', category: 'vertical' },
-        { key: 6, text: 'Turn 3', location: '-100 520', category: 'vertical' },
-
-        // Group for horizontal layout
-        { key: 100, isGroup: true, location: '350 180' },
-
-        // Gamma and horizontal nodes (now in group)
-        { key: 3, text: 'Gamma', group: 100 },
-        { key: 7, text: 'H1', group: 100 },
-        { key: 8, text: 'H2', group: 100 },
-        { key: 9, text: 'H3', group: 100 },
-        { key: 14, text: 'H4', group: 100 },
-
-        // H2 children (in group)
-        { key: 10, text: 'H2-A', group: 100 },
-        { key: 11, text: 'H2-B', group: 100 },
-
-        // H3 children (in group)
-        { key: 12, text: 'H3-A', group: 100 },
-        { key: 13, text: 'H3-B', group: 100 }
-      ],
-
-      linkDataArray: [
-        // Vertical main chain
-        { from: 1, to: 2, fromPort: 'bottom', toPort: 'top' },
-        { from: 2, to: 4, fromPort: 'bottom', toPort: 'top' },
-        { from: 4, to: 5, fromPort: 'bottom', toPort: 'top' },
-        { from: 5, to: 6, fromPort: 'bottom', toPort: 'top' },
-
-        // Turn A → Gamma (link into group)
-        { from: 1, to: 3, fromPort: 'right', toPort: 'left' },
-
-        // Horizontal chain
-        { from: 3, to: 7, fromPort: 'right', toPort: 'left' },
-        { from: 7, to: 8, fromPort: 'right', toPort: 'left' },
-
-        // H1 is parent of H3
-        { from: 7, to: 9, fromPort: 'right', toPort: 'left' },
-        { from: 7, to: 14, fromPort: 'right', toPort: 'left' },
-
-        // H2 children
-        { from: 8, to: 10, fromPort: 'right', toPort: 'left' },
-        { from: 8, to: 11, fromPort: 'right', toPort: 'left' },
-
-        // H3 children
-        { from: 9, to: 12, fromPort: 'right', toPort: 'left' },
-        { from: 9, to: 13, fromPort: 'right', toPort: 'left' }
-      ]
+      nodeDataArray,
+      linkDataArray
     });
 
     return () => {
@@ -227,11 +215,13 @@ export default function DiagramComponent() {
   return (
     <div className='flex h-screen w-full items-center justify-center bg-gray-50'>
       <div className='rounded-lg bg-white p-6 shadow-lg'>
-        <h1 className='mb-4 text-2xl font-bold text-gray-800'>GoJS Diagram</h1>
+        <h1 className='mb-4 text-2xl font-bold text-gray-800'>
+          Narrative Graph
+        </h1>
         <div
           ref={diagramRef}
           className='rounded border-2 border-gray-300'
-          style={{ width: 1000, height: 800 }}
+          style={{ width: 1200, height: 800 }}
         />
       </div>
     </div>
